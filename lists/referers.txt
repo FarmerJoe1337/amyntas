@@ -19,7 +19,7 @@ https://www.cloudflare.com/ko-kr/
 https://www.cloudflare.com/pt-br/
 https://www.cloudflare.com/zh-tw/
 https://www.cloudflare.com/zh-cn/
-https://github.com/Switch1024/Amyntas
+https://github.com/Switch1024/amyntas
 https://github.com/NewEraCracker/LOIC
 https://www.yahoo.com
 https://fast.com/
