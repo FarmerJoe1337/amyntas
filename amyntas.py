@@ -19,7 +19,7 @@ desc = f'{w}Thanks for using Amyntas v3! Use a proxy to be safe, unless you want
 # Arguments
 parser = argparse.ArgumentParser(prog=sys.argv[0], usage='%(prog)s [options] -t http://target.domain', description=desc, allow_abbrev=False)
 parser.add_argument('-t',  '--target',       dest = 'target',       default = 'https://target.com',   help='Target URL (Example: https://google.com or http://fishysite.com)', type=str)
-parser.add_argument('-m',  '--mode',         dest = 'attack_mode',  default = 'GET',                  help='Attack mode (GET / HEAD / POST / SLOWLORIS)', type=str)
+parser.add_argument('-m',  '--mode',         dest = 'attack_mode',  default = 'GET',                  help='Attack mode (GET / HEAD / POST)', type=str)
 parser.add_argument('-v',  '--verbose',      dest = 'verbose',      default = False,                  help='Show info when attacking', type=bool)
 parser.add_argument('-d',  '--duration',     dest = 'duration',     default = 80,                     help='Attack duration', type=int)
 parser.add_argument('-p',  '--proxy',        dest = 'proxy',        default = '',                     help='Use a proxy when attacking, only supports SOCKS5 (Example: 127.0.0.1:1337)', type=str)
