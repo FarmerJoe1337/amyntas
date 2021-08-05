@@ -2,6 +2,15 @@
 This version is v3, because v1 and v2 are just too shitty to upload. I made this script to flex on my friends, thats it.
 This script is for volumetric layer 7 attacks, not for stealthy and powerfull attacks!
 
+# features
+1. Cache bypassing
+2. Randomized user agents
+3. Randomized referers
+4. Rotating proxy support
+5. Option to choose custom user agents list
+6. Option to choose custom referer list
+7. Randomized POST payloads
+
 # known bugs/problems
 1. Timing is a bit egh, because thread 1 is already busy attacking when thread 70 just started (for example)
 2. Proxies get obliterated when attacking (need to fix)
