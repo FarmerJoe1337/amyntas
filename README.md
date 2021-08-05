@@ -34,3 +34,15 @@ POST flood, 700 threads and 40 seconds:
 ```
 python3 amyntas.py -t https://target.com -w 700 -d 40 -m POST
 ```
+
+# images
+Note, these are a bit old because i am too lazy to make new screenshots lmao
+
+23k requests per second
+![23k](https://github.com/Switch1024/amyntas/blob/main/images/23k_dstat.png?raw=true)
+
+30k requests per second
+![30k](https://github.com/Switch1024/amyntas/blob/main/images/30k_dstat.png?raw=true)
+
+507k requests per second
+![507k](https://github.com/Switch1024/amyntas/blob/main/images/507k_dstat.png?raw=true)
