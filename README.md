@@ -1,3 +1,6 @@
+# NOTE!
+Results may vary when attacking! It might peak at 40k rq/s and drop down to 2k rq/s, just so you know!
+
 # about
 This version is v3, because v1 and v2 are just too shitty to upload. I made this script to flex on my friends, thats it.
 This script is for volumetric layer 7 attacks, not for stealthy and powerfull attacks!
