@@ -58,3 +58,6 @@ Note, these are a bit old because i am too lazy to make new screenshots lmao
 
 507k requests per second
 ![507k](https://github.com/Switch1024/amyntas/blob/main/images/507k_dstat.png?raw=true)
+
+
+btw, Toshiro is a skid
